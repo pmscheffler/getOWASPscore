@@ -15,6 +15,7 @@ def getOWASPscore(argv):
     username = "admin"
     hiddenpassword = "SomePassword"
     policyName = ""
+    policyId = ""
 
     try:
         opts, args = getopt.getopt(argv, "?h:u:p:n:", ["host=", "user=", "password=", "name="])
@@ -24,7 +25,7 @@ def getOWASPscore(argv):
         print('-h <hostname or ip> (host=)')
         print('-u <username> (username=)')
         print('-p <password> (password=)')
-        print('-n <policyID> (name=)')
+        print('-d <policyID> (id=)')
         print('Format is policyName = "?$filter=name eq policy-name"')
         print('Leave it blank and it will iterate thru all of the policies')
         print('or if you use a wildcard it will go thru a subset')
@@ -38,7 +39,7 @@ def getOWASPscore(argv):
             print('-h <hostname or ip> (host=)')
             print('-u <username> (username=)')
             print('-p <password> (password=)')
-            print('-n <policyid> (policyid=)')
+            print('-d <policyid> (id=) OR -n <policyname> (name=) == One of these are required')
             sys.exit(1)
         elif opt in ("-h", "--host"):
             bigip_host = arg
@@ -46,8 +47,10 @@ def getOWASPscore(argv):
             username = arg
         elif opt in ("-p", "--password"):
             hiddenpassword = arg
-        elif opt in ("-n", "--policyid"):
-            policyID = arg
+        elif opt in ("-n", "--name"):
+            policyName = arg
+        elif opt in ("-d", "--id"):
+            policyId = arg
 
     url = "https://" + bigip_host + "/mgmt/shared/authn/login"
 
@@ -67,21 +70,26 @@ def getOWASPscore(argv):
 
     authToken = data['token']['token']
 
-    # print('Authtoken: ' + authToken)
-
-    url = "https://"+ bigip_host + "/mgmt/tm/asm/owasp/generate-score"
-
-    payload = "{\n    \"policyId\": 9qaSOCw0_eJtcHc-KbTpdg\n}"
-    # print("Payload:" + payload)
-
     headers = {
       'Content-type': 'application/json',
       'X-F5-Auth-Token': authToken
     }
 
-    response = requests.request("POST", url, headers=headers, data=payload, verify=False)
+    if len(policyId) == 0:
+      url = "https://"+ bigip_host + "/mgmt/tm/asm/policies?$filter=name eq " + policyName
+      response = requests.request("GET", url, headers=headers, verify=False)
+      data = json.loads(response.text)
+      policyId = data['items'][0]['id']
+      # pprint.pprint(policyId)
 
-    print(response.text)
+    if len(policyId) > 0:
+      url = "https://"+ bigip_host + "/mgmt/tm/asm/owasp/generate-score"
+
+      payload = "{\n    \"policyId\": 9qaSOCw0_eJtcHc-KbTpdg\n}"
+
+      response = requests.request("POST", url, headers=headers, data=payload, verify=False)
+
+      print(response.text)
 
 
 if __name__ == "__main__":
