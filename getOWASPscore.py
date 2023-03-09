@@ -85,7 +85,7 @@ def getOWASPscore(argv):
     if len(policyId) > 0:
       url = "https://"+ bigip_host + "/mgmt/tm/asm/owasp/generate-score"
 
-      payload = "{\n    \"policyId\": 9qaSOCw0_eJtcHc-KbTpdg\n}"
+      payload = "{\n    \"policyId\": " + policyId + " \n}"
 
       response = requests.request("POST", url, headers=headers, data=payload, verify=False)
 
